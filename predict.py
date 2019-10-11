@@ -6,7 +6,7 @@ import plotly.graph_objs as go
 from keras.models import Sequential
 from keras.layers import Dense
 
-features_header = ['Time', 'Open', 'High', 'Low', 'Close', 'Tickvol', 'Spread', 'Growth']
+features_header = ['Time', 'Open', 'High', 'Low', 'Tickvol', 'Spread', 'Growth']
 label = 'Close'
 data_csv = 'EURUSD_M5_201805292305_201910011910.csv'
 
@@ -21,21 +21,24 @@ ds['Time'] = ds['Time'].dt.hour*60 + ds['Time'].dt.minute
 # Create new feature to instant growth
 ds['Growth'] = ds['Close'].sub(ds['Open'])
 
-# Save original data frame
-ds_orig = ds.copy()
-
 # Normalize some fields
 ds_num = ds[['Time', 'Tickvol', 'Spread', 'Growth']]
 ds_norm = (ds_num - ds_num.mean()) / (ds_num.max() - ds_num.min())
 ds[ds_norm.columns] = ds_norm
 
 # Split train and test data
-train = ds[features_header].sample(frac=0.8, random_state=200)
-test = ds[features_header].drop(train.index)
+sample_80 = ds.sample(frac=0.8, random_state=200)
+sample_20 = ds.drop(sample_80.index)
+
+# Training data
+train_data, train_label = sample_80[features_header], sample_80[label]
+
+# Test data
+test_data, test_label = sample_20[features_header], sample_20[label]
 
 # Network
 model = Sequential([
-  Dense(64, activation='relu', input_shape=(len(features_header) - 1,)),
+  Dense(64, activation='relu', input_shape=(len(features_header),)),
   Dense(64, activation='relu'),
   Dense(1),
 ])
@@ -46,26 +49,29 @@ model.compile(
   metrics=['mean_squared_error']
 )
 
-print('Train Features: \n%s' % train.drop(label, axis=1))
-print('Train Labels: \n%s' % train[label])
+print('Train Features: \n%s' % train_data)
+print('Train Labels: \n%s' % train_label)
 
 model.fit(
-  train.drop(label, axis=1),
-  train[label],
-  epochs=2,
-  batch_size=32
+  train_data,
+  train_label,
+  epochs=50,
+  batch_size=18
 )
 
 # Result of training
-print(model.evaluate(test.drop(label, axis=1), test[label]))
+print(model.evaluate(
+  test_data, 
+  test_label)
+)
 
 # Export features and weights
 ds.to_csv('features.csv', index=False)
 model.save_weights('model.h5')
 
 # Use it!
-print('Predicted: \n%s' % model.predict(test.drop(label, axis=1)[:10]))
-print('Labels: \n%s' % test[label][:10])
+print('Predicted: \n%s' % model.predict(test_data[:10]))
+print('Labels: \n%s' % test_label[:10])
 
 # Check results on candle graph
 '''
