@@ -1,14 +1,26 @@
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.offline as py
 import plotly.graph_objs as go
 from keras.models import Sequential
 from keras.layers import Dense
+from keras.models import model_from_json
 
-features_header = ['Time', 'Open', 'High', 'Low', 'Tickvol', 'Spread', 'Growth']
+features_header = ['Time', 'Open', 'High', 'Low', 'Tickvol', 'Growth']
 label = 'Close'
-data_csv = 'EURUSD_M5_201805292305_201910011910.csv'
+data_csv = 'data/EURUSD_H1_200509010000_201910140000_validation.csv'
+
+# Load model json
+json_file = open('model.json', 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+
+# Create model and load weights
+model = model_from_json(loaded_model_json)
+model.load_weights("model.h5")
+print("Loaded model from disk")
 
 # Load data from CSV
 ds = pd.read_csv(data_csv, sep='\\t')
@@ -22,64 +34,40 @@ ds['Time'] = ds['Time'].dt.hour*60 + ds['Time'].dt.minute
 ds['Growth'] = ds['Close'].sub(ds['Open'])
 
 # Normalize some fields
-ds_num = ds[['Time', 'Tickvol', 'Spread', 'Growth']]
+ds_num = ds[['Time', 'Tickvol', 'Growth']]
 ds_norm = (ds_num - ds_num.mean()) / (ds_num.max() - ds_num.min())
 ds[ds_norm.columns] = ds_norm
 
-# Split train and test data
-sample_80 = ds.sample(frac=0.8, random_state=200)
-sample_20 = ds.drop(sample_80.index)
+# Data to predict
+input_data, input_label = ds[features_header], ds[label]
 
-# Training data
-train_data, train_label = sample_80[features_header], sample_80[label]
-
-# Test data
-test_data, test_label = sample_20[features_header], sample_20[label]
-
-# Network
-model = Sequential([
-  Dense(64, activation='relu', input_shape=(len(features_header),)),
-  Dense(64, activation='relu'),
-  Dense(1),
-])
+print('Input Data: \n%s' % input_data)
+print('Input Labels: \n%s' % input_label)
 
 model.compile(
-  optimizer='sgd',
-  loss='mean_squared_error',
-  metrics=['mean_squared_error']
+  optimizer='adam',
+  loss='mean_squared_error'
 )
 
-print('Train Features: \n%s' % train_data)
-print('Train Labels: \n%s' % train_label)
+# Predict!
+qtde = 20
+predictions = model.predict(input_data[:qtde])
+#print('%s\n%s' % (input_label[:qtde], predictions))
 
-model.fit(
-  train_data,
-  train_label,
-  epochs=50,
-  batch_size=18
-)
+# Correct
+go.Figure(data=[
+  go.Candlestick(x=ds['Date'][:qtde],
+                      open=ds['Open'][:qtde],
+                      high=ds['High'][:qtde],
+                      low=ds['Low'][:qtde],
+                      close=input_label[:qtde]
+  )], layout={'title': {'text': 'Correct  '}}).show()
 
-# Result of training
-print(model.evaluate(
-  test_data, 
-  test_label)
-)
-
-# Export features and weights
-ds.to_csv('features.csv', index=False)
-model.save_weights('model.h5')
-
-# Use it!
-print('Predicted: \n%s' % model.predict(test_data[:10]))
-print('Labels: \n%s' % test_label[:10])
-
-# Check results on candle graph
-'''
-data = go.Candlestick(x=ds_orig['Date'][:5],
-                      open=ds_orig['Open'][:5],
-                      high=ds_orig['High'][:5],
-                      low=ds_orig['Low'][:5],
-                      close=ds_orig['Close'][:5]
-                    )
-go.Figure(data=[data], layout={'title': {'text': 'Label'}}).show()
-'''
+# Predicted
+go.Figure(data=[
+  go.Candlestick(x=ds['Date'][:qtde],
+                      open=ds['Open'][:qtde],
+                      high=ds['High'][:qtde],
+                      low=ds['Low'][:qtde],
+                      close=list(map(lambda p : p[0], predictions[:qtde]))
+  )], layout={'title': {'text': 'Predicted'}}).show()
