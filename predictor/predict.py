@@ -13,13 +13,13 @@ label = 'Close'
 data_csv = 'data/EURUSD_H1_200509010000_201910140000_validation.csv'
 
 # Load model json
-json_file = open('model.json', 'r')
+json_file = open('model/model.json', 'r')
 loaded_model_json = json_file.read()
 json_file.close()
 
 # Create model and load weights
 model = model_from_json(loaded_model_json)
-model.load_weights("model.h5")
+model.load_weights("model/model.h5")
 print("Loaded model from disk")
 
 # Load data from CSV

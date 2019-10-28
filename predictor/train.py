@@ -48,7 +48,7 @@ model = Sequential([
 
 # Save model to json
 model_json = model.to_json()
-with open("model.json", "w") as json_file:
+with open("model/model.json", "w") as json_file:
     json_file.write(model_json)
 
 # Model parameters
@@ -73,5 +73,5 @@ score = model.evaluate(test_data, test_label, verbose=0)
 print('%s: %s' % (model.metrics_names[0], score))
 
 # Export trained weights
-model.save_weights('model.h5')
+model.save_weights('model/model.h5')
 print('Trained weights exported to model.h5')
