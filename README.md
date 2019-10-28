@@ -8,10 +8,10 @@ Hello!
 
 To run server:
 
-```public/run.sh```, then ```http://127.0.0.1:5000```
+```./run-server.sh```, then ```http://127.0.0.1:5000```
 
 To run ML service:
 
-```model/run.sh```
+```./run-predictor.sh```
 
 Have fun testing and exploring!

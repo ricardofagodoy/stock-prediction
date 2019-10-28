@@ -2,3 +2,4 @@ env
 *.h5
 model.json
 .vscode
+.DS_STORE
