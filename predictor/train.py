@@ -6,8 +6,6 @@ from keras.models import Sequential
 from keras.layers import Dense
 
 # Properties
-features_header = ['Time', 'Open', 'High', 'Low', 'Tickvol', 'Growth']
-label = 'Close'
 data_csv = 'data/EURUSD_H1_200509010000_201910140000.csv'
 epochs=15
 batch_size=10
@@ -15,18 +13,78 @@ batch_size=10
 # Load data from CSV
 ds = pd.read_csv(data_csv, sep='\\t')
 
-# Create Time feature (in seconds)
-ds['Date'] = pd.to_datetime(ds['Date'] + ' ' + ds['Time'])
-ds['Time'] = pd.to_datetime(ds['Time'])
-ds['Time'] = ds['Time'].dt.hour*60 + ds['Time'].dt.minute
+# Feature engineering (creating new features over existing)
+df = pd.DataFrame()
 
-# Create new feature to instant growth
-ds['Growth'] = ds['Close'].sub(ds['Open'])
+df['open'] = ds['Open']
+df['high'] = ds['High']
+df['low'] = ds['Low']
+df['close'] = ds['Open']
+df['tickvol'] = ds['Tickvol']
+df['time_of_day'] = pd.to_datetime(ds['Time']).dt.hour
+df['growth'] = ds['Close'].sub(ds['Open'])
+df['is_up'] = df['growth'] > 0
 
-# Normalize some fields
+is_up = df['is_up'].values
+candles_since_reversion = []
+
+for i in range(len(is_up)):
+
+  candles_since_reversions = np.full(4, None).tolist()
+  curr = i-1
+
+  if curr < 0:
+    candles_since_reversion_1.append(None)
+    continue
+
+  while curr >= 0:
+      
+    if is_up[i] != is_up[curr]:
+      candles_since_reversion_1.append(i-curr)
+      break
+
+    curr -= 1
+
+def candles_since_reversion(row):
+
+  curr = row.name-1
+
+  while curr >= 0:
+      
+    if df.loc[row.name, 'is_up'] != df.loc[curr, 'is_up']:
+      return row.name-curr
+
+    curr -= 1
+
+#df['candles_since_reversion_1'] = df.apply(candles_since_reversion, axis=1)
+df['candles_since_reversion_1'] = candles_since_reversion_1
+
+'''
+df['candles_since_reversion_2']
+df['candles_since_reversion_3']
+df['candles_since_reversion_4']
+df['reversion_1_strength']
+df['reversion_2_strength']
+df['reversion_3_strength']
+df['reversion_4_strength']
+df['is_up_candle']
+df['is_down_candle']
+'''
+
+# Label
+df['is_going_up'] = ds['Close'].shift(1).sub(ds['Open'].shift(1)) > 0
+
+df.dropna(inplace=True)
+
+print(df)
+exit(0)
+
+# Normalize
 ds_num = ds[['Time', 'Tickvol', 'Growth']]
 ds_norm = (ds_num - ds_num.mean()) / (ds_num.max() - ds_num.min())
 ds[ds_norm.columns] = ds_norm
+
+# z-index
 
 # Split train and test data
 sample_80 = ds.sample(frac=0.8, random_state=200)
