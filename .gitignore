@@ -3,3 +3,5 @@ env
 model.json
 .vscode
 .DS_Store
+predictor/__pycache__
+predictor/logs
