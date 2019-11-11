@@ -5,10 +5,6 @@ import pandas as pd
 import datetime
 import tensorflow as tf
 from keras.callbacks.callbacks import EarlyStopping
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-#from keras.models import Sequential
-#from keras.layers import Dense, Dropout
 from features_engineering import create_basic_features
 from features_engineering import calculate_candles_since_n_reversions
 from features_engineering import normalization
@@ -17,8 +13,8 @@ from features_engineering import one_hot_encode
 # Properties
 data_csv = 'data/EURUSD_H1_200509010000_201910140000.csv'
 label = 'is_going_up'
-epochs=1
-batch_size=128
+epochs=500
+batch_size=10
 
 # Load data from CSV
 ds = pd.read_csv(data_csv, sep='\\t')
@@ -34,16 +30,23 @@ df['candles_since_reversion_3'] = candles_since_reversions[2]
 df['candles_since_reversion_4'] = candles_since_reversions[3]
 
 # Label
-df[label] = ds['Close'].shift(1).sub(ds['Open'].shift(1)) > 0
+df[label] = (ds['Close'].shift(1).sub(ds['Open'].shift(1)) > 0).astype(int)
 
 df.dropna(inplace=True)
 print('Columns:\n %s' % df.columns)
+print('Dtypes:\n %s' % df.dtypes)
 
 # One-hot encoding for needed fields
 df = pd.concat([df, one_hot_encode(df['hour_of_day'])], axis=1)
+df.drop('hour_of_day', axis=1, inplace=True)
 
-# Normalize
+# Normalize or Standardize
 df = normalization(df)
+
+# Export features data and labels to file
+df.to_csv('features/training.csv', index=None, header=True)
+
+#exit(0)
 
 # Split train and test data
 sample_80 = df.sample(frac=0.8, random_state=200)
@@ -55,18 +58,18 @@ train_data, train_label = sample_80.drop(label, axis=1), sample_80[label]
 # Test data
 test_data, test_label = sample_20.drop(label, axis=1), sample_20[label]
 
-print('train data: \n%s' % (train_data.columns))
+print('train data: \n%s\n%s' % (train_data.columns, train_data.head()))
 print('train label: \n%s' % train_label.name)
 
 # Network
-model = Sequential([
-  Dense(64, activation='relu', input_shape=(len(train_data.columns),)),
-  Dropout(0.5),
-  Dense(128, activation='relu'),
-  Dropout(0.5),
-  Dense(128, activation='relu'),
-  Dropout(0.5),
-  Dense(1, activation='sigmoid'),
+model = tf.keras.models.Sequential([
+  tf.keras.layers.Dense(64, activation='relu', input_shape=(len(train_data.columns),)),
+  tf.keras.layers.Dense(256, activation='relu'),
+  tf.keras.layers.Dropout(0.5),
+  tf.keras.layers.Dense(256, activation='relu'),
+  tf.keras.layers.Dropout(0.5),
+  tf.keras.layers.Dense(64, activation='relu'),
+  tf.keras.layers.Dense(1, activation='sigmoid'),
 ])
 
 # Save model to json
@@ -77,14 +80,14 @@ with open("model/model.json", "w") as json_file:
 # Model parameters
 model.compile(
   loss='binary_crossentropy',
-  optimizer='rmsprop',
+  optimizer='adam',
   metrics=['accuracy']
 )
 
 # Callbacks to fit
 log_dir="logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
-early_stop_callback = EarlyStopping(monitor='val_loss', mode='min', verbose=1)
+early_stop_callback = EarlyStopping(monitor='loss', mode='min', patience=25, verbose=1)
 
 callbacks = [tensorboard_callback, early_stop_callback]
 
@@ -102,8 +105,8 @@ model.fit(
 predictions = model.predict(test_data)
 
 confusion = tf.math.confusion_matrix(
-  labels=test_label, #.astype(int), 
-  predictions=predictions.round(0).astype(bool), 
+  labels=test_label,
+  predictions=predictions.round(0), 
   num_classes=2
 )
 

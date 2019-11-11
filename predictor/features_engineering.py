@@ -5,16 +5,19 @@ def create_basic_features(ds):
 
     df = pd.DataFrame()
 
-    df['open'] = ds['Open']
-    df['high'] = ds['High']
-    df['low'] = ds['Low']
-    df['close'] = ds['Open']
+    df['open'] = format_tick(ds['Open'])
+    df['high'] = format_tick(ds['High'])
+    df['low'] = format_tick(ds['Low'])
+    df['close'] = format_tick(ds['Close'])
     df['tickvol'] = ds['Tickvol']
     df['hour_of_day'] = pd.to_datetime(ds['Time']).dt.hour
-    df['growth'] = ds['Close'].sub(ds['Open'])
-    df['is_up'] = df['growth'] > 0
+    df['growth'] = df['close'].sub(df['open'])
+    df['is_up'] = (df['growth'] > 0).astype(int)
 
     return df
+
+def format_tick(tick):
+  return (tick * 10e4).round(0).astype(int)
 
 def calculate_candles_since_n_reversions(is_up_arr, n):
   
@@ -45,23 +48,13 @@ def _calculate_candles_since_n_reversions(is_up_arr, n, i):
 
   return candles_since_reversions
 
-def standardization(dataset):
-
-  dtypes = list(zip(dataset.dtypes.index, map(str, dataset.dtypes)))
-
-  for column, dtype in dtypes:
-      if dtype == 'float32':
-          dataset[column] -= dataset[column].mean()
-          dataset[column] /= dataset[column].std()
-  return dataset
-
 def normalization(dataset):
 
   dtypes = list(zip(dataset.dtypes.index, map(str, dataset.dtypes)))
 
   for column, dtype in dtypes:
       if dtype in ['float64', 'int64']:
-        dataset[column] = (dataset[column] - dataset[column].min()) / (dataset[column].max() - dataset[column].min())
+        dataset[column] = ((dataset[column] - dataset[column].min()) / (dataset[column].max() - dataset[column].min())).round(5)
         
   return dataset
 
