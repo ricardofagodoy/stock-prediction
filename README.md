@@ -1,6 +1,16 @@
 # stock-prediction
 
-Hello!
+## TODOs
+
+- Better measure (precision/recall)
+- L1/L2 regularization
+- Optimizers with custom values
+- More layers + increasing neurons
+- Tune dropout (smaller)
+- LSTM
+- Hyperparameter (find automatic lib tunning)
+- Train many models with different hyperparameters and compare them!
+- Search for hyperparameters optimtization techniques
 
 ```python -m virtualenv .``` 
 
