@@ -1,6 +1,6 @@
 env
 *.h5
-model.json
+predictor/model
 .vscode
 .DS_Store
 predictor/__pycache__
