@@ -5,12 +5,12 @@ from feature_engineering import obtain_features_split
 
 # Properties
 data_csv='data/EURUSD_M5_201805292305_201910011910.csv'
-epochs=10
-batch_size=12
-num_layers=4
-initial_neurons=32
+epochs=20
+batch_size=30
+num_layers=8
+initial_neurons=12
 neurons_multiplier=2.5
-dropout_rate=0.08
+dropout_rate=0.09
 activation='relu'
 loss_function='binary_crossentropy'
 optimizer='adam' # rmsprop
