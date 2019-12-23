@@ -12,6 +12,16 @@
 - Train many models with different hyperparameters and compare them!
 - Search for hyperparameters optimtization techniques
 
+- Um fundo e um topo mais alto (ALTA)
+- Um fundo e um topo mais baixo (BAIXA)
+
+candles de força e baixa
+tendências macro
+continuidade e reversão
+pullbacks
+z-index
+days since x
+
 ```python -m virtualenv .``` 
 
 ```pip install -R requirements.txt```
